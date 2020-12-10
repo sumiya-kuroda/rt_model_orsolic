@@ -19,21 +19,23 @@ from gp_model import prepare_Xy, build_model, build_model_ard
 
 def load_data(filename):
     """load reaction time dataset"""
-
-    # convert matlab data into dataframe
-    mat = io.loadmat(filename)
-    dset = pd.DataFrame({
-        'rt': mat['rt'].ravel() - 1,
-        'sig': mat['sig'].ravel(),
-        'sig_avg': mat['sig_avg'].ravel(),
-        'sig_std': mat['sig_std'].ravel(),
-        'session': mat['session'].ravel(),
-        'hazard': np.vstack(mat['hazard'].ravel()).ravel(),
-        'outcome': mat['outcome'].ravel(),
-        'noiseless': mat['noiseless'].ravel() != 0,
-        'ys': [y.ravel() for y in mat['ys'].flat],
-        'change': mat['change'].ravel() - 1
-    })
+    if filename.endswith('.mat'):
+        # convert matlab data into dataframe
+        mat = io.loadmat(filename)
+        dset = pd.DataFrame({
+            'rt': mat['rt'].ravel() - 1,
+            'sig': mat['sig'].ravel(),
+            'sig_avg': mat['sig_avg'].ravel(),
+            'sig_std': mat['sig_std'].ravel(),
+            'session': mat['session'].ravel(),
+            'hazard': np.vstack(mat['hazard'].ravel()).ravel(),
+            'outcome': mat['outcome'].ravel(),
+            'noiseless': mat['noiseless'].ravel() != 0,
+            'ys': [y.ravel() for y in mat['ys'].flat],
+            'change': mat['change'].ravel() - 1
+        })
+    else:
+        dset = pd.read_pickle(filename)
 
     # add reaction-time from change point
     # TODO move to matlab code
@@ -142,7 +144,9 @@ KernelInput = strenum(
     'KernelInput', 'full time logtime wtime stim proj expproj hzrd'
 )
 KernelType = strenum(
-    'KernelType', 'RBF Linear Matern12 Matern32 Matern52 White Constant'
+    'KernelType',
+    'RBF Linear Matern12 Matern32 Matern52 White Constant RationalQuadratic '
+    'ArcCosine'
 )
 
 
