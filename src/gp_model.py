@@ -255,7 +255,7 @@ class Hierarchical(gpflow.kernels.Combination):
 
 
 def build_kernel(kernel_type, kernel_input, hierarchy, n_lags, n_proj=None,
-                 sigma=None, n_tanh=None):
+                 sigma=None, n_tanh=5):
     """construct the GP kernel to fit reaction-time"""
 
     # retrieve a class corresponding to the kernel type
