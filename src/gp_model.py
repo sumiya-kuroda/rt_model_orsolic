@@ -12,6 +12,25 @@ from tensorflow.contrib.distributions import Normal, Gamma
 from gp_advi import FVGP, build_factor
 
 
+def extract_filters(params):
+    """extract and sort filters from a projected model"""
+
+    filters = next(
+        value for param, value in params.items() if param.endswith('W')
+    )
+
+    # sort by filter standard deviation
+    filters_idx = np.argsort(-filters.std(axis=0))
+    filters_sorted = filters[:, filters_idx]
+
+    # flip to make bigger deviation positive
+    mask_idx = np.arange(filters_sorted.shape[1])
+    flip_mask = filters_sorted[7, mask_idx] < 0
+    filters_sorted[:, flip_mask] = -filters_sorted[:, flip_mask]
+
+    return filters_sorted, filters_idx, flip_mask
+
+
 def _prepare_X(dset_row, n_lags, max_nt):
     """convert stimulus data into lagged version (helper function)"""
     nt = len(dset_row.ys)

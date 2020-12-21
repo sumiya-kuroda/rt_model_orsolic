@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import gpflow.kernels
 
-from gp_model import build_model, prepare_X, predict_logpmf
+from gp_model import build_model, prepare_X, predict_logpmf, extract_filters
 
 def make_predictions(model, model_opts, model_params, dset, nsamples=200):
     # generate expected logit-hazard rate
@@ -32,13 +32,14 @@ def make_predictions(model, model_opts, model_params, dset, nsamples=200):
 
     return dset
 
-def main(result_dir, pred_filename, *, nsamples=None):
+def main(result_dir, pred_filename, *, nsamples=None, zero_filter=None):
     """Generate predictions from a fitted GP model for experimental data
 
     :param str result_dir: directory of the fitted Gaussian process
     :param str pred_filename: output Pandas dataset file (.pickle format)
     :param int nsamples: number of samples to estimate posterior lick
                          probability, not computed by default
+    :param int zero_filter: make predictions with one of the filters set to 0
     """
 
     # fix seed for reproducibility
@@ -52,6 +53,11 @@ def main(result_dir, pred_filename, *, nsamples=None):
     model_opts = np.load(result_path / 'model_options.npz')
     model = build_model(dset[dset.train], fast_init=True, **model_opts)
     model_params = dict(np.load(result_path / 'model_params_best.npz'))
+
+    if zero_filter is not None:
+        _, filters_idx, _ = extract_filters(model_params)
+        model_params['PartialSVGP/kern/kernels/0/W'][:, filters_idx[zero_filter]] = 0
+
     model.assign(model_params)
 
     dset = make_predictions(model, model_opts, model_params, dset, nsamples)
