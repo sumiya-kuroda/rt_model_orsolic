@@ -12,12 +12,19 @@ from strenum import strenum
 import seaborn as sb
 
 def get_lick_stims(row, filter_idx):
+    """
+    Get filter activations at the time of licks
+
+    row - row of dataframe for a given trial
+    filter_idx - filter activations to extract
+    """
     if ~np.isnan(row.rt):
         return row.projected_stim[int(row.rt), filter_idx]
     else:
         return np.nan
 
 def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
+    """Plot the effects of zeroing top filters"""
     pred_filename = model_dir + 'predictions.pickle'
     pred_filename_0 = model_dir + 'predictions_drop_filter_0.pickle'
     pred_filename_1 = model_dir + 'predictions_drop_filter_1.pickle'
@@ -25,15 +32,20 @@ def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
     _, dset_pred_0 = load_data(pred_filename_0, n_samples, folds)
     _, dset_pred_1 = load_data(pred_filename_1, n_samples, folds)
     if block == 'split':
-        dset = dset[dset.hazard != 'nonsplit']
-        dset_pred_full = dset_pred_full[dset_pred_full.hazard != 'nonsplit']
-        dset_pred_0 = dset_pred_0[dset_pred_0.hazard != 'nonsplit']
-        dset_pred_1 = dset_pred_1[dset_pred_1.hazard != 'nonsplit']
+        dset = dset[dset.hazard != 'nonsplit'].copy()
+        dset_pred_full = dset_pred_full[dset_pred_full.hazard != 'nonsplit'].copy()
+        dset_pred_0 = dset_pred_0[dset_pred_0.hazard != 'nonsplit'].copy()
+        dset_pred_1 = dset_pred_1[dset_pred_1.hazard != 'nonsplit'].copy()
     else:
-        dset = dset[dset.hazard == 'nonsplit']
-        dset_pred_full = dset_pred_full[dset_pred_full.hazard == 'nonsplit']
-        dset_pred_0 = dset_pred_0[dset_pred_0.hazard == 'nonsplit']
-        dset_pred_1 = dset_pred_1[dset_pred_1.hazard == 'nonsplit']
+        dset = dset[dset.hazard == 'nonsplit'].copy()
+        dset_pred_full = dset_pred_full[dset_pred_full.hazard == 'nonsplit'].copy()
+        dset_pred_0 = dset_pred_0[dset_pred_0.hazard == 'nonsplit'].copy()
+        dset_pred_1 = dset_pred_1[dset_pred_1.hazard == 'nonsplit'].copy()
+
+    dsets = [ dset_pred_full, dset_pred_0, dset_pred_1 ]
+    (f0_color, f1_color) = (sb.xkcd_rgb['mauve'], sb.xkcd_rgb['green'])
+    colors = [ 'k', f0_color, f1_color ]
+    labels = [ 'Full', '-Filter 1', '-Filter 2']
 
     # psychometric functions
     hitlicks_test = (
@@ -41,13 +53,6 @@ def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
         .groupby('sig').agg({'hit': 'mean'})
     )
     axes[0].plot(hitlicks_test, '--.r')
-    plot_psycho(dset_pred_full, axes[0], 'Full', color='k')
-    plot_psycho(dset_pred_0, axes[0], '-Filter 1', color=sb.xkcd_rgb['mauve'])
-    plot_psycho(dset_pred_1, axes[0], '-Filter 2', color=sb.xkcd_rgb['green'])
-
-    axes[0].set_ylim(0, 1)
-    axes[0].set_xlim(0, 2)
-
     # chronometric functions
     period = 0.05
     hitrt_test = period * (
@@ -56,9 +61,13 @@ def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
     )
     period = 0.05
     axes[1].plot(hitrt_test, '--.r')
-    plot_chrono(dset_pred_full, period, axes[1], color='k')
-    plot_chrono(dset_pred_0, period, axes[1], color=sb.xkcd_rgb['mauve'])
-    plot_chrono(dset_pred_1, period, axes[1], color=sb.xkcd_rgb['green'])
+
+    for (d, c, l) in zip(dsets, colors, labels):
+        plot_psycho(d, axes[0], l, color=c)
+        plot_chrono(d, period, axes[1], color=c)
+
+    axes[0].set_ylim(0, 1)
+    axes[0].set_xlim(0, 2)
     axes[1].set_xlim(0, 2)
 
     # plot filter activations at the time of licks
@@ -68,31 +77,23 @@ def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
     predictions['sig'] /= np.log(2)
 
     if block == 'split':
-        predictions = predictions[predictions.hazard != 'nonsplit']
+        predictions = predictions[predictions.hazard != 'nonsplit'].copy()
     else:
-        predictions = predictions[predictions.hazard != 'split']
-    predictions['lick_stim_1'] = predictions.apply(get_lick_stims,
-        args=(filters_idx[0],), axis=1)
-    predictions['lick_stim_2'] = predictions.apply(get_lick_stims,
-        args=(filters_idx[1],), axis=1)
-    if flip_mask[0]:
-        predictions['lick_stim_1'] = -predictions['lick_stim_1']
-    if flip_mask[1]:
-        predictions['lick_stim_2'] = -predictions['lick_stim_2']
-    hitlicks_pred_1 = (
-        predictions[predictions['outcome']=='Hit']
-        .groupby(['sig']).agg({'lick_stim_1': 'mean'})
-    )
-    hitlicks_pred_2 = (
-        predictions[predictions['outcome']=='Hit']
-        .groupby(['sig']).agg({'lick_stim_2': 'mean'})
-    )
-    fa_licks_1 = predictions[predictions['outcome']=='FA'].lick_stim_1.mean()
-    fa_licks_2 = predictions[predictions['outcome']=='FA'].lick_stim_2.mean()
-    axes[2].plot(hitlicks_pred_1, color=sb.xkcd_rgb['mauve'])
-    axes[2].plot(hitlicks_pred_2, color=sb.xkcd_rgb['green'])
-    axes[2].plot(-.25, fa_licks_1, '.', color=sb.xkcd_rgb['mauve'])
-    axes[2].plot(-.25, fa_licks_2, '.', color=sb.xkcd_rgb['green'])
+        predictions = predictions[predictions.hazard != 'split'].copy()
+    for (f, c) in zip([0, 1], [f0_color, f1_color]):
+        col_name = 'lick_stim_{}'.format(f)
+        predictions[col_name] = predictions.apply(get_lick_stims,
+            args=(filters_idx[f],), axis=1)
+        # make sure sign of filter activations is consistent
+        if flip_mask[f]:
+            predictions[col_name] = -predictions[col_name]
+        hitlicks_pred = (
+            predictions[predictions['outcome']=='Hit']
+            .groupby(['sig']).agg({col_name: 'mean'})
+        )
+        fa_licks = predictions[predictions['outcome']=='FA'][col_name].mean()
+        axes[2].plot(hitlicks_pred, color=c)
+        axes[2].plot(-.25, fa_licks, '.', color=c)
     axes[2].axhline(0, linestyle=':')
 
     # plot proportion of early licks
@@ -118,7 +119,7 @@ def make_plots(model_dir, block, axes, axes_early, folds, n_samples):
 
 Fold = strenum('Fold', 'train val test')
 
-def main(figure_dir, *, folds=('test',), n_samples=200):
+def main(figure_dir, *, folds=('test','val','train'), n_samples=200):
     """Evaluate the contribution of the top two stimulus filters to model performance
 
     :param str figure_dir: directory for generated figures
@@ -159,8 +160,10 @@ def main(figure_dir, *, folds=('test',), n_samples=200):
         for ii, mouse in enumerate(mice):
             model_dir = 'manuscript/results/' + mouse + \
                 '__constant__matern52__proj_wtime__ard/'
+            # running version, no hazard rate blocks
             make_plots(model_dir, 'nonsplit',
                 axes_plots[ii,0:3], axes_early[0,ii], folds, n_samples)
+            # stationary version with hazard rate blocks
             make_plots(model_dir, 'split',
                 axes_plots[ii,3:], axes_early[1,ii], folds, n_samples)
 
