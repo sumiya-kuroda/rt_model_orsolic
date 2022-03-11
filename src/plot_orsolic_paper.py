@@ -12,7 +12,7 @@ from gp_ppc import load_data
 from scipy.stats import gaussian_kde
 
 
-def plot_psycho(dset_pred, ax, label):
+def plot_psycho(dset_pred, ax, label, color='k'):
     """plot predictive psychometric curve"""
 
     hitlicks_pred = (
@@ -25,13 +25,13 @@ def plot_psycho(dset_pred, ax, label):
 
     ax.fill_between(
         hitlicks_pred.index, hitlicks_prc.loc[0.025], hitlicks_prc.loc[0.975],
-        alpha=0.3, lw=0, color='k'
+        alpha=0.3, lw=0, color=color
     )
 
-    ax.plot(hitlicks_mean, color='k', label=label, alpha=0.8)
+    ax.plot(hitlicks_mean, color=color, label=label, alpha=0.8)
 
 
-def plot_chrono(dset_pred, period, ax):
+def plot_chrono(dset_pred, period, ax, color='k'):
     """plot predictive chronometric curve"""
 
     hitrt_pred = period * (
@@ -44,10 +44,10 @@ def plot_chrono(dset_pred, period, ax):
 
     ax.fill_between(
         hitrt_pred.index, hitrt_prc.loc[0.025], hitrt_prc.loc[0.975],
-        alpha=0.3, lw=0, color='k'
+        alpha=0.3, lw=0, color=color
     )
 
-    ax.plot(hitrt_mean, color='k', alpha=0.8)
+    ax.plot(hitrt_mean, color=color, alpha=0.8)
 
 
 def plot_rt_cdf(dset_pred, rt_range, period, color, ax):
