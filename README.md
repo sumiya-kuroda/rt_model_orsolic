@@ -1,7 +1,7 @@
 # Reaction-time modeling with Gaussian process models
 
 This repository contains code to analysis reaction-time from experimental data
-collected by Ivana Orsolic.
+collected by Ivana Orsolic. Updated by Sumiya Kuroda (@sumiya-kuroda).
 
 This code accompanies the paper *Mesoscale cortical dynamics reflect the interaction of sensory evidence and temporal expectation during perceptual decision-making*,
 Ivana Orsolic, Maxime Rio, Thomas D. Mrsic-Flogel, Petr Znamenskiy (https://doi.org/10.1101/552026).
@@ -11,23 +11,25 @@ Ivana Orsolic, Maxime Rio, Thomas D. Mrsic-Flogel, Petr Znamenskiy (https://doi.
 ## Installation
 
 To retrieve the code, just clone the repository:
-```
+```sh
 git clone https://github.com/BaselLaserMouse/rt_model_orsolic
 ```
 
-To run the analysis code, you will need the following to be installed on your
-computer:
+To run the analysis code, you will need `python 3.5`, `pipenv`, and `cuda` (to use tensorflow with gpu computations), running on an appropriate generation of NVIDIA GPU(s). e.g., NVIDIA GTX 1060 6GB. We recommend you to run everything on Docker as it will save a lot of your time dealing with CUDA compatibility, etc. Download and install Docker, and run the command below to run the container and mount the working directory. `tensorflow/tensorflow:1.9.0-gpu-py3` already has CUDA 9.0 and libcudnn 7, which is needed to run tensorflow-1.9.0. You can check with `nvidia-smi` and `nvcc --version`.
 
-- `python 3`
-- `pipenv`
-- `cuda` (to use tensorflow with gpu computations)
+```sh
+docker run -it --gpus all -v ${PWD}:/mnt/dmdm --shm-size=1g -m "16g" --rm tensorflow/tensorflow:1.9.0-gpu-py3 bash
+```
 
 The remaining dependencies can be installed from the command line in a virtual
 environment, using `pipenv`:
-```
+```sh
+cd /mnt/dmdm/
+pip install -U pip
+pip install pipenv
+export LC_ALL=C.UTF-8 # needed for pipenv
+export LANG=C.UTF-8 # needed for pipenv
 pipenv install  # create a virtual environment and populate it
-pipenv install --dev  # install development related dependencies
-pipenv shell  # spawn a shell in the virtual environment
 ```
 
 Remark: A virtual environment is a good practice to isolate the code and its
@@ -39,7 +41,12 @@ dependencies from your system.
 You can either:
 
 - run `snakemake` in the top folder to compute all analyses (fitting, scores,
-  figures, ...)
+  figures, ...). If you want to specify GPU(s) to use, 
+
+```sh
+CUDA_VISIBLE_DEVICES="1" pipenv run snakemake
+```
+
 - run any of the python scripts in `src` folder to test different parameters.
 
 Scripts have a `-h/--help` flag to provide more information about the available
@@ -73,10 +80,15 @@ The remaining `.py` files are modules containing common code.
 
 
 ## Troubleshooting
+If you want to quickly check whether tensorflow recognizes your GPU:
+```py
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices()) # for 1
+```
 
 Installing cuda reliably can tricky, here is a summary of command lines to
 achieve it on an Ubuntu 16.04:
-```
+```sh
 sudo dpkg -i cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb
 sudo apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub
 sudo apt update
@@ -89,7 +101,7 @@ It assumes that you downloaded cuda and cudnn packages from Nvidia website.
 Another common issue is the number of threads used by `gp_fit.py` script. This
 can be due to the `openblas` library linked with your `numpy` package. You can
 limit this using the `OPENBLAS_NUM_THREADS` environment variable as follows:
-```
+```sh
 OPENBLAS_NUM_THREADS=4 src/gp_fit.py <ouput folder> <input datasets> ...
 ```
 
@@ -104,7 +116,7 @@ and [bazel website](https://docs.bazel.build/versions/master/install-ubuntu.html
 The bug in bazel 0.19 is described in [an issue](https://github.com/tensorflow/tensorflow/issues/23401).
 
 In a terminal, install bazel:
-```
+```sh
 sudo apt-get install openjdk-8-jdk  # install JDK 8
 echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list
 curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
@@ -112,14 +124,14 @@ sudo apt-get update && sudo apt-get install bazel
 ```
 
 Then clone tensorflow:
-```
+```sh
 git clone https://github.com/tensorflow/tensorflow.git
 cd tensorflow
 git checkout r1.9
 ```
 
 Populate a virtual environment with dependencies:
-```
+```sh
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -U pip six numpy wheel mock
@@ -128,7 +140,7 @@ pip install -U keras_preprocessing==1.0.3 --no-deps
 ```
 
 Test, configure and build tensorflow:
-```
+```sh
 bazel test -c opt -- //tensorflow/... -//tensorflow/compiler/... -//tensorflow/contrib/lite/...
 ./configure
 cat tools/bazel.rc .tf_configure.bazelrc > tf_configure.bazelrc; mv tf_configure.bazelrc .tf_configure.bazelrc  # needed for bazel 0.19
