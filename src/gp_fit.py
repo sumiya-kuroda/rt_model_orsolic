@@ -25,12 +25,12 @@ def load_data(filename):
         dset = pd.DataFrame({
             'rt': mat['rt'].ravel() - 1,
             'sig': mat['sig'].ravel(),
-            'sig_avg': mat['sig_avg'].ravel(),
-            'sig_std': mat['sig_std'].ravel(),
+            # 'sig_avg': mat['sig_avg'].ravel(),
+            # 'sig_std': mat['sig_std'].ravel(),
             'session': mat['session'].ravel(),
             'hazard': np.vstack(mat['hazard'].ravel()).ravel(),
             'outcome': mat['outcome'].ravel(),
-            'noiseless': mat['noiseless'].ravel() != 0,
+            # 'noiseless': mat['noiseless'].ravel() != 0,
             'ys': [y.ravel() for y in mat['ys'].flat],
             'change': mat['change'].ravel() - 1
         })
@@ -48,7 +48,7 @@ def load_data(filename):
     # misc. cleaning
     # TODO move to matlab code
     dset = dset.groupby('sig').filter(lambda x: len(x) > 200)
-    dset = dset[~dset.noiseless]  # remove noiseless sessions
+    # dset = dset[~dset.noiseless]  # remove noiseless sessions
     dset = dset[dset.outcome != 'abort']  # remove movement aborted trials
 
     return dset
@@ -93,13 +93,14 @@ class Logger:
         self.model = model
         self.batch_size = batch_size
         self.patience = patience
+        self.init_patience = patience
 
         X, y = prepare_Xy(dset, model.n_lags, model.max_nt)
         self.X, self.y = np.vstack(X), np.vstack(y)
 
         self.logp = []
         self.best_logp = -np.inf
-        self.max_iter = patience
+        # self.max_iter = patience
         self.previous_time = time.time()
 
     def __call__(self, cnt):
@@ -118,18 +119,18 @@ class Logger:
             '%Y-%m-%d %H:%M:%S', time.localtime(current_time)
         )
         print(
-            '{} :: elapsed {} :: {} :: {} (stop {}) :: current {} (best {})'
-            .format(current, elapsed, self.name, cnt, self.max_iter,
+            '{} :: elapsed {} :: {} :: {} (stop at {}) :: current {} (best {})'
+            .format(current, elapsed, self.name, cnt, self.patience,
                     self.logp[-1], self.best_logp)
         )
 
         has_improved = False
         if self.logp[-1] > self.best_logp:
             self.best_logp = self.logp[-1]
-            self.max_iter = cnt + self.patience
             has_improved = True
+            self.patience = cnt + self.init_patience
 
-        if cnt > self.max_iter:
+        if cnt > self.patience:
             raise StopOptimization()
 
         return has_improved
@@ -196,7 +197,8 @@ def main(result_dir, *dset_filename, hazard=Hazard.nonsplit,
     main_inputs = locals().copy()
 
     # fix seed for reproducibility
-    seed = 12345
+    seed = 20231025
+    init_patience = patience
     np.random.seed(seed)
 
     # load datasets and create splits for training
@@ -218,6 +220,7 @@ def main(result_dir, *dset_filename, hazard=Hazard.nonsplit,
             intra_op_parallelism_threads=threads,
             inter_op_parallelism_threads=threads
         )
+        session_conf.gpu_options.allow_growth = True
         tf.Session(config=session_conf)
 
     # build the model
@@ -255,9 +258,9 @@ def main(result_dir, *dset_filename, hazard=Hazard.nonsplit,
 
     # prepare logging objects
     logger = partial(Logger, model=model, batch_size=logger_batch_size)
-    logger_train = logger('train', dset=dset[dset.train])
+    logger_train = logger('train', dset=dset[dset.train], patience=patience)
     logger_val = logger('val', dset=dset[dset.val], patience=patience)
-    logger_test = logger('test', dset=dset[dset.test])
+    logger_test = logger('test', dset=dset[dset.test], patience=patience)
 
     n_iter_per_epoch = int(np.ceil(model.Y.shape[0] / model.Y.batch_size))
     max_time = time.time() + max_duration * 60

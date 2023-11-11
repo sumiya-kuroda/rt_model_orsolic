@@ -43,7 +43,7 @@ def main(result_dir, pred_filename, *, nsamples=None, zero_filter=None):
     """
 
     # fix seed for reproducibility
-    seed = 12345
+    seed = 20231025
     np.random.seed(seed)
 
     # load dataset and model

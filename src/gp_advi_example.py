@@ -19,7 +19,7 @@ def generate_dataset(n_points):
 
 
 def main():
-    np.random.seed(1234)
+    np.random.seed(20231025)
     X, y = generate_dataset(200)
 
     float_type = gpflow.settings.float_type
