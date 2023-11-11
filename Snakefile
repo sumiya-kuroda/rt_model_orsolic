@@ -18,14 +18,14 @@ def method_labels(wildcards, input):
     return ' '.join(labels)
 
 
-if 'mdrive' not in config:
-    config['mdrive'] = '/mnt/microscopy'
-
-MICE = ['IO_075', 'IO_078', 'IO_079', 'IO_080', 'IO_081', 'IO_083']
+MICE = ['data_IO_079_20231108']
 EXPERIMENTS = [
-    'full', 'stim_time', 'stim_wtime', 'stim', 'time', 'proj__ard', 'wtime',
-    'proj_time', 'proj_time__ard', 'proj_wtime__ard'
+    'full', 'stim_time', 'stim_wtime', 'proj_wtime__ard'
 ]
+# EXPERIMENTS = [
+#     'full', 'stim_time', 'stim_wtime', 'stim', 'time', 'proj__ard', 'wtime',
+#     'proj_time', 'proj_time__ard', 'proj_wtime__ard'
+# ]
 FOLDS = ['test', 'train_val']
 
 EXPERIMENTS_ARD = [kern for kern in EXPERIMENTS if kern.endswith('__ard')]
@@ -47,7 +47,7 @@ rule all:
 rule fit_ml:
     "fit a Gaussian process model using maximum marginal likelihood"
     input:
-        'data/data_{mouse}.mat'
+        'data/{mouse}.mat'
     params:
         kernels_type=lambda wildcards: wildcards.kernels_type.replace('_', ' ').title(),
         kernels_input=lambda wildcards: wildcards.kernels_input.split('_'),
@@ -68,8 +68,8 @@ rule fit_ml:
                       --nproj 15 \
                       --nz {params.nz} \
                       --batch-size 12000 \
-                      --patience 50000 \
-                      --max-duration 1200 \
+                      --patience 5000 \
+                      --max-duration 500 \
                       {output} {input}
         """
 
@@ -77,7 +77,7 @@ rule fit_ml:
 rule fit_ard:
     "fit a Gaussian process model with ARD prior using ADVI"
     input:
-        'data/data_{mouse}.mat'
+        'data/{mouse}.mat'
     params:
         kernels_type=lambda wildcards: wildcards.kernels_type.replace('_', ' ').title(),
         kernels_input=lambda wildcards: wildcards.kernels_input.split('_'),
@@ -98,8 +98,8 @@ rule fit_ard:
                       --nproj 15 \
                       --nz {params.nz} \
                       --batch-size 12000 \
-                      --patience 50000 \
-                      --max-duration 1200 \
+                      --patience 5000 \
+                      --max-duration 500 \
                       --use-ard \
                       {output} {input}
         """
