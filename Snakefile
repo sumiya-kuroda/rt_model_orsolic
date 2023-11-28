@@ -18,7 +18,7 @@ def method_labels(wildcards, input):
     return ' '.join(labels)
 
 
-MICE = ['data_IO_079_20231108']
+MICE = ['data_AllMouse_20231126']
 EXPERIMENTS = [
     'full', 'stim_time', 'stim_wtime', 'proj_wtime__ard'
 ]
@@ -68,8 +68,8 @@ rule fit_ml:
                       --nproj 15 \
                       --nz {params.nz} \
                       --batch-size 12000 \
-                      --patience 5000 \
-                      --max-duration 500 \
+                      --patience 10000 \
+                      --max-duration 1000 \
                       {output} {input}
         """
 
@@ -98,8 +98,8 @@ rule fit_ard:
                       --nproj 15 \
                       --nz {params.nz} \
                       --batch-size 12000 \
-                      --patience 5000 \
-                      --max-duration 500 \
+                      --patience 10000 \
+                      --max-duration 1000 \
                       --use-ard \
                       {output} {input}
         """
