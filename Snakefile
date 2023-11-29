@@ -56,7 +56,7 @@ rule fit_ml:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}/model')
     threads: 5
     resources:
-        gpu=1
+        gpu=2
     shell:
         """
         OPENBLAS_NUM_THREADS={threads} src/gp_fit.py \
@@ -86,7 +86,7 @@ rule fit_ard:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}__ard/model_ard')
     threads: 5
     resources:
-        gpu=1
+        gpu=2
     shell:
         """
         OPENBLAS_NUM_THREADS={threads} src/gp_fit.py \
@@ -179,3 +179,26 @@ rule score_all:
         directory('results/all_mice__scores')
     shell:
         'src/gp_score.py {output} {input} --labels {params.labels}'
+
+
+rule predict_drop_filter_0:
+    "predict hazard and lick probability from a Gaussian process fit"""
+    input:
+        'results/{folder}/model'
+    output:
+        'results/{folder}/predictions_drop_filter_0.pickle'
+    resources:
+        gpu=2
+    shell:
+        'src/gp_predict.py -n 500 -z 0 {input} {output}'
+
+rule predict_drop_filter_1:
+    "predict hazard and lick probability from a Gaussian process fit"""
+    input:
+        'results/{folder}/model'
+    output:
+        'results/{folder}/predictions_drop_filter_1.pickle'
+    resources:
+        gpu=2
+    shell:
+        'src/gp_predict.py -n 500 -z 1 {input} {output}'
