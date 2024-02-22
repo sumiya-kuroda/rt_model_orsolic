@@ -18,15 +18,15 @@ def method_labels(wildcards, input):
     return ' '.join(labels)
 
 
-MICE = ['data_AllMouse_20231126']
+MICE = [
+    'data_AllHumans_GPmodel', 
+    #'data_AllMiceTrainig_GPmodel'
+    ]
 EXPERIMENTS = [
-    'full', 'stim_time', 'stim_wtime', 'proj_wtime__ard'
-]
-# EXPERIMENTS = [
-#     'full', 'stim_time', 'stim_wtime', 'stim', 'time', 'proj__ard', 'wtime',
-#     'proj_time', 'proj_time__ard', 'proj_wtime__ard'
-# ]
+    'full', 'stim_time', 'stim_wtime', 'proj_wtime__ard' #,'time', 'wtime', 
+    ]
 FOLDS = ['test', 'train_val']
+GPU_NUM = 1
 
 EXPERIMENTS_ARD = [kern for kern in EXPERIMENTS if kern.endswith('__ard')]
 
@@ -40,8 +40,10 @@ rule all:
                mouse=MICE, folds=FOLDS),
         expand('results/{mouse}__constant__matern52__{kernels_input}/posteriors',
                mouse=MICE, kernels_input=EXPERIMENTS_ARD),
-        expand('results/{mouse}__scores', mouse=MICE),
-        'results/all_mice__scores'
+        expand('results/{mouse}__constant__matern52__proj_wtime__ard/filter_dropped',
+               mouse=MICE),
+        expand('results/{mouse}__scores', mouse=MICE)
+        # 'results/all_mice__scores'
 
 
 rule fit_ml:
@@ -56,7 +58,7 @@ rule fit_ml:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}/model')
     threads: 5
     resources:
-        gpu=2
+        gpu=GPU_NUM
     shell:
         """
         OPENBLAS_NUM_THREADS={threads} src/gp_fit.py \
@@ -86,7 +88,7 @@ rule fit_ard:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}__ard/model_ard')
     threads: 5
     resources:
-        gpu=2
+        gpu=GPU_NUM
     shell:
         """
         OPENBLAS_NUM_THREADS={threads} src/gp_fit.py \
@@ -126,13 +128,13 @@ rule convert_ard:
 
 
 rule predict:
-    "predict hazard and lick probability from a Gaussian process fit"""
+    "predict hazard and lick probability from a Gaussian process fit"
     input:
         'results/{folder}/model'
     output:
         'results/{folder}/predictions.pickle'
     resources:
-        gpu=1
+        gpu=GPU_NUM
     shell:
         'src/gp_predict.py -n 500 {input} {output}'
 
@@ -164,41 +166,34 @@ rule score:
         'src/gp_score.py {output} {input} --labels {params.labels}'
 
 
-rule score_all:
-    "generate predictive scores from a Gaussian process fit for all mice"
-    input:
-        expand('results/{mouse}__constant__matern52__{kernels_input}/predictions.pickle',
-               mouse=MICE, kernels_input=EXPERIMENTS),
-        expand('results/{mouse}__constant__linear_matern52__stim_time/predictions.pickle',
-               mouse=MICE),
-        expand('results/{mouse}__linear__constant__full/predictions.pickle',
-               mouse=MICE)
+# rule score_all:
+#     "generate predictive scores from a Gaussian process fit for all mice"
+#     input:
+#         expand('results/{mouse}__constant__matern52__{kernels_input}/predictions.pickle',
+#                mouse=MICE, kernels_input=EXPERIMENTS),
+#         expand('results/{mouse}__constant__linear_matern52__stim_time/predictions.pickle',
+#                mouse=MICE),
+#         expand('results/{mouse}__linear__constant__full/predictions.pickle',
+#                mouse=MICE)
+#     params:
+#         labels=method_labels
+#     output:
+#         directory('results/all_mice__scores')
+#     shell:
+#         'src/gp_score.py {output} {input} --labels {params.labels}'
+
+
+rule predict_dropping:
+    "predict hazard and lick probability from a Gaussian process fit with excluding filters"
+    input: 
+        'results/{mouse}__constant__matern52__proj_wtime__ard/model'
+    output:
+        directory('results/{mouse}__constant__matern52__proj_wtime__ard/filter_dropped')
     params:
-        labels=method_labels
-    output:
-        directory('results/all_mice__scores')
-    shell:
-        'src/gp_score.py {output} {input} --labels {params.labels}'
-
-
-rule predict_drop_filter_0:
-    "predict hazard and lick probability from a Gaussian process fit"""
-    input:
-        'results/{folder}/model'
-    output:
-        'results/{folder}/predictions_drop_filter_0.pickle'
+        dropping_filters = [0, 1]
     resources:
-        gpu=2
-    shell:
-        'src/gp_predict.py -n 500 -z 0 {input} {output}'
-
-rule predict_drop_filter_1:
-    "predict hazard and lick probability from a Gaussian process fit"""
-    input:
-        'results/{folder}/model'
-    output:
-        'results/{folder}/predictions_drop_filter_1.pickle'
-    resources:
-        gpu=2
-    shell:
-        'src/gp_predict.py -n 500 -z 1 {input} {output}'
+            gpu=GPU_NUM
+    run:
+        shell('mkdir {output}')
+        for f in params.dropping_filters:
+            shell('src/gp_predict.py -n 500 -z {f} {input} {output}/predictions_drop_filter_{f}.pickle')

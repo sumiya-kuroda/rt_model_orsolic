@@ -104,8 +104,8 @@ def main(result_dir, figure_dir, *, n_samples=1000):
         loc, scale = loc[:, idx], scale[:, idx]
 
         # flip to make bigger deviation positive
-        flip_mask = loc.mean(0) < 0
-        loc[:, flip_mask] = -loc[:, flip_mask]
+        # flip_mask = loc.mean(0) < 0
+        # loc[:, flip_mask] = -loc[:, flip_mask]
 
         # plot posterior distributions
         gamma_figname = key.replace('/', '_') + '_precision.png'

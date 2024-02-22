@@ -18,7 +18,7 @@ git clone https://github.com/BaselLaserMouse/rt_model_orsolic
 To run the analysis code, you will need `python 3.5`, `pipenv`, and `cuda` (to use tensorflow with gpu computations), running on an appropriate generation of NVIDIA GPU(s). e.g., NVIDIA GTX 1060 6GB. We recommend you to run everything on Docker as it will save a lot of your time dealing with CUDA compatibility, etc. Download and install Docker, and run the command below to run the container and mount the working directory. `tensorflow/tensorflow:1.9.0-gpu-py3` already has CUDA 9.0 and libcudnn 7, which is needed to run tensorflow-1.9.0. You can check with `nvidia-smi` and `nvcc --version`.
 
 ```sh
-docker run -it --gpus all -v ${PWD}:/mnt/dmdm --shm-size=1g -m "16g" --rm tensorflow/tensorflow:1.9.0-gpu-py3 bash
+PS > docker run -it --gpus all -v ${PWD}:/mnt/dmdm --shm-size=1g -m "16g" --rm tensorflow/tensorflow:1.9.0-gpu-py3 bash
 ```
 
 The remaining dependencies can be installed from the command line in a virtual
@@ -41,10 +41,13 @@ dependencies from your system.
 You can either:
 
 - run `snakemake` in the top folder to compute all analyses (fitting, scores,
-  figures, ...). If you want to specify GPU(s) to use, 
+  figures, ...). 
 
 ```sh
-CUDA_VISIBLE_DEVICES="1" pipenv run snakemake
+pipenv run snakemake
+# or
+# CUDA_VISIBLE_DEVICES="1" pipenv run snakemake
+# if you want to specify which GPU to use, you can do it like above.
 ```
 
 - run any of the python scripts in `src` folder to test different parameters.
@@ -55,7 +58,6 @@ options, expected input files and output files.
 To reproduce the figures from the paper, you will also need the corresponding
 data available on [figshare](https://figshare.com/s/45f53f720d75498ac3c4).
 Unzip the `data` and `results` folders directly into the repository folder.
-
 
 ## Code organisation
 
@@ -75,7 +77,7 @@ Provided scripts in `src` folder are:
   kernel hyperparameters,
 - `gp_advi_example.py` is a dummy example of a GP model with ADVI inference
   applied on the kernel hyperparameters.
-
+- `Format/` contains MATLAB scripts to convert raw behavior data saved in `.mat` into GPmodel compatible format.
 The remaining `.py` files are modules containing common code.
 
 

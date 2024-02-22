@@ -1,4 +1,10 @@
 .venv
 manuscript
 __pycache__
-
+data/
+results/
+figures/
+tensorflow
+*.png
+.snakemake
+.vscode

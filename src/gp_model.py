@@ -23,10 +23,11 @@ def extract_filters(params):
     filters_idx = np.argsort(-filters.std(axis=0))
     filters_sorted = filters[:, filters_idx]
 
-    # flip to make bigger deviation positive
-    mask_idx = np.arange(filters_sorted.shape[1])
-    flip_mask = filters_sorted[7, mask_idx] < 0
-    filters_sorted[:, flip_mask] = -filters_sorted[:, flip_mask]
+    # # flip to make bigger deviation positive
+    # mask_idx = np.arange(filters_sorted.shape[1])
+    # flip_mask = filters_sorted[7, mask_idx] < 0
+    # filters_sorted[:, flip_mask] = -filters_sorted[:, flip_mask]
+    flip_mask = None
 
     return filters_sorted, filters_idx, flip_mask
 
