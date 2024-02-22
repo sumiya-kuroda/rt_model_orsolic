@@ -13,7 +13,15 @@ arguments
 end
 
 if ~contains(matfile,'_fsm.mat')
-    error(['Error. ', matfile, 'needs to be in fsm format.']) 
+    error(['Error. ', matfile, 'needs to be in final fsm format.']) 
+end
+
+if strcmp(species, 'mice') && ~concat
+    warning([matfile, 'only has one mouse.'])
+    % In the current version of the code, mouse fsm files are saved for
+    % individual animal. i.e., concatenation is onlly allowed for each
+    % file.
+    concat = true;
 end
 
 disp("Loading fsm behavior dataset...");
@@ -26,7 +34,7 @@ if concat
     disp(['Reading and formatting data for GP model for all animals; Number of sessions: ', int2str(length(sessions))]);
     for s = 1:length(sessions)
         subData = fsm.fsm(strcmp({fsm.fsm.session}, sessions{s}));
-        struct = fsm2GPmodel(subData, sessions{s});
+        struct = fsm2GPmodel(subData, sessions{s}, species);
         outcomeAll{s} = struct.outcome;
         sigAll{s} = struct.sig;
         sessionAll{s} = struct.session;
@@ -58,8 +66,12 @@ hazard = vertcat([hazardAll{:}]).';
 outcome = vertcat([outcomeAll{:}]).';
 change = vertcat([changeAll{:}]).';
 ys = vertcat([ysAll{:}]);
-clearvars -except rt sig session hazard outcome ys change species ResultFolder
+clearvars -except rt sig session hazard outcome ys change species ResultFolder animals
 
-save(fullfile(ResultFolder,'data_AllHumans_GPmodel.mat')); % no '-v7.3'
+if strcmp(species, 'humans')
+    save(fullfile(ResultFolder,'data_AllHumans_GPmodel.mat')); % no '-v7.3'
+elseif strcmp(species, 'mice')
+    save(fullfile(ResultFolder,['data_All', animals{1}, '_GPmodel.mat'])); % no '-v7.3'
+end
 
 end
