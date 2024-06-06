@@ -47,7 +47,7 @@ if concat
     ys = vertcat([ysAll{:}]);
     clearvars -except rt sig session hazard outcome ys change species ResultFolder animals
     
-    if trcmp(species, 'humans')
+    if strcmp(species, 'humans')
         save(fullfile(ResultFolder,'dataAllHumans_GPmodel.mat')); % no '-v7.3'
     elseif strcmp(species, 'mice')
         save(fullfile(ResultFolder,'data_AllMiceTraining_GPmodel.mat')); % no '-v7.3'
