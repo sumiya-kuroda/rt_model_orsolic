@@ -6,7 +6,7 @@ import defopt
 import numpy as np
 import pandas as pd
 import gpflow.kernels
-
+import tensorflow as tf
 from gp_model import build_model, prepare_X, predict_logpmf, extract_filters
 
 def make_predictions(model, model_opts, model_params, dset, nsamples=200):
@@ -45,6 +45,11 @@ def main(result_dir, pred_filename, *, nsamples=None, zero_filter=None):
     # fix seed for reproducibility
     seed = 20231025
     np.random.seed(seed)
+
+    session_conf = tf.ConfigProto()
+    session_conf.gpu_options.allow_growth = True
+    tf.reset_default_graph()
+    tf.Session(config=session_conf)
 
     # load dataset and model
     result_path = Path(result_dir)
