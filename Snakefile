@@ -19,14 +19,23 @@ def method_labels(wildcards, input):
 
 
 MICE = [
-    'data_AllHumans_GPmodel', 
-    #'data_AllMiceTrainig_GPmodel'
+    # 'data_AllHumans_GPmodel', 
+    # 'data_AllMiceTraining_GPmodel'
+    'data_AllMiceTraining_GPmodel_GLMHMMx0',
+    'data_AllMiceTraining_GPmodel_GLMHMMx1',
+    'data_AllMiceTraining_GPmodel_GLMHMMx2'
+    # 'data_MiceTraining_M_AK004_GPmodel',
+    # 'data_MiceTraining_M_AK005_GPmodel',
+    # 'data_MiceTraining_M_AK008_GPmodel',
+    # 'data_MiceTraining_M_ML007_GPmodel',
+    # 'data_MiceTraining_M_ML008_GPmodel',
+    # 'data_MiceTraining_M_ML009_GPmodel'
     ]
 EXPERIMENTS = [
     'full', 'stim_time', 'stim_wtime', 'proj_wtime__ard' #,'time', 'wtime', 
     ]
 FOLDS = ['test', 'train_val']
-GPU_NUM = 1
+GPU_NUM = 3
 
 EXPERIMENTS_ARD = [kern for kern in EXPERIMENTS if kern.endswith('__ard')]
 
@@ -56,7 +65,7 @@ rule fit_ml:
         nz=lambda wildcards: 1 if wildcards.kernels_type == 'constant' else 150
     output:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}/model')
-    threads: 5
+    threads: 10
     resources:
         gpu=GPU_NUM
     shell:
@@ -69,7 +78,7 @@ rule fit_ml:
                       --kernels-input {params.kernels_input} \
                       --nproj 15 \
                       --nz {params.nz} \
-                      --batch-size 12000 \
+                      --batch-size 1200 \
                       --patience 10000 \
                       --max-duration 1000 \
                       {output} {input}
@@ -86,7 +95,7 @@ rule fit_ard:
         nz=lambda wildcards: 1 if wildcards.kernels_type == 'constant' else 150
     output:
         directory('results/{mouse}__{mean_type}__{kernels_type}__{kernels_input}__ard/model_ard')
-    threads: 5
+    threads: 10
     resources:
         gpu=GPU_NUM
     shell:
@@ -99,7 +108,7 @@ rule fit_ard:
                       --kernels-input {params.kernels_input} \
                       --nproj 15 \
                       --nz {params.nz} \
-                      --batch-size 12000 \
+                      --batch-size 1200 \
                       --patience 10000 \
                       --max-duration 1000 \
                       --use-ard \
@@ -166,24 +175,7 @@ rule score:
         'src/gp_score.py {output} {input} --labels {params.labels}'
 
 
-# rule score_all:
-#     "generate predictive scores from a Gaussian process fit for all mice"
-#     input:
-#         expand('results/{mouse}__constant__matern52__{kernels_input}/predictions.pickle',
-#                mouse=MICE, kernels_input=EXPERIMENTS),
-#         expand('results/{mouse}__constant__linear_matern52__stim_time/predictions.pickle',
-#                mouse=MICE),
-#         expand('results/{mouse}__linear__constant__full/predictions.pickle',
-#                mouse=MICE)
-#     params:
-#         labels=method_labels
-#     output:
-#         directory('results/all_mice__scores')
-#     shell:
-#         'src/gp_score.py {output} {input} --labels {params.labels}'
-
-
-rule predict_dropping:
+rule predict_drop:
     "predict hazard and lick probability from a Gaussian process fit with excluding filters"
     input: 
         'results/{mouse}__constant__matern52__proj_wtime__ard/model'
@@ -192,7 +184,7 @@ rule predict_dropping:
     params:
         dropping_filters = [0, 1]
     resources:
-            gpu=GPU_NUM
+        gpu=GPU_NUM
     run:
         shell('mkdir {output}')
         for f in params.dropping_filters:

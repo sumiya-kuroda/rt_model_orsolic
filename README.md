@@ -15,10 +15,10 @@ To retrieve the code, just clone the repository:
 git clone https://github.com/BaselLaserMouse/rt_model_orsolic
 ```
 
-To run the analysis code, you will need `python 3.5`, `pipenv`, and `cuda` (to use tensorflow with gpu computations), running on an appropriate generation of NVIDIA GPU(s). e.g., NVIDIA GTX 1060 6GB. We recommend you to run everything on Docker as it will save a lot of your time dealing with CUDA compatibility, etc. Download and install Docker, and run the command below to run the container and mount the working directory. `tensorflow/tensorflow:1.9.0-gpu-py3` already has CUDA 9.0 and libcudnn 7, which is needed to run tensorflow-1.9.0. You can check with `nvidia-smi` and `nvcc --version`.
+To run the analysis code, you will need `python 3.5`, `pipenv`, and `cuda` (to use tensorflow with gpu computations), running on an appropriate generation of NVIDIA GPU(s). e.g., NVIDIA GTX 1060 6GB or GTX 1080. We recommend you to run everything on Docker as it will save a lot of your time dealing with CUDA compatibility, etc. Download and install Docker, and run the command below to run the container and mount the working directory. `tensorflow/tensorflow:1.9.0-gpu-py3` already has CUDA 9.0 and libcudnn 7, which is needed to run tensorflow-1.9.0. You can check with `nvidia-smi` and `nvcc --version`. We were successfuly able to run these on Windows 10 as well as NixOS 23.05.
 
 ```sh
-PS > docker run -it --gpus all -v ${PWD}:/mnt/dmdm --shm-size=1g -m "16g" --rm tensorflow/tensorflow:1.9.0-gpu-py3 bash
+$ docker run -it --gpus all -v ${PWD}:/mnt/dmdm --shm-size=1g -m "64g" --rm tensorflow/tensorflow:1.9.0-gpu-py3 bash
 ```
 
 The remaining dependencies can be installed from the command line in a virtual
@@ -44,7 +44,7 @@ You can either:
   figures, ...). 
 
 ```sh
-pipenv run snakemake
+pipenv run snakemake -j 10
 # or
 # CUDA_VISIBLE_DEVICES="1" pipenv run snakemake
 # if you want to specify which GPU to use, you can do it like above.
@@ -159,3 +159,15 @@ any version of tensorflow before, e.g. using `pip uninstall tensorflow-gpu`.
 
 This project is published under the MIT License. See the [LICENSE](LICENSE) file
 for details.
+
+
+https://github.com/XuehaiPan/nvitop#more-than-a-monitor
+cd ~
+git clone --depth=1 https://github.com/XuehaiPan/nvitop.git
+cd nvitop
+docker build --tag nvitop:latest .
+docker run -it --rm --runtime=nvidia --gpus=all --pid=host nvitop:latest
+
+--cores 4
+
+--cpus=10 

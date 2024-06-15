@@ -155,7 +155,7 @@ def main(result_dir, *dset_filename, hazard=Hazard.nonsplit,
          mean_type=MeanType.zero, kernels_type=(KernelType.RBF,),
          kernels_input=(KernelInput.full,),
          hierarchy=(), combination=Combination.add,
-         sigma=1e-1, nproj=5, ntanh=5, nz=100, batch_size=50000, nlags=50,
+         sigma=1e-1, nproj=5, ntanh=5, nz=100, batch_size=50000, nlags=40,
          learning_rate=1e-3, max_iter=1000000, patience=10000,
          max_duration=np.inf, fractions=(0.2, 0.2), threads=0,
          logger_batch_size=100000, save_train=False, save_test=False,
@@ -220,8 +220,11 @@ def main(result_dir, *dset_filename, hazard=Hazard.nonsplit,
             intra_op_parallelism_threads=threads,
             inter_op_parallelism_threads=threads
         )
-        session_conf.gpu_options.allow_growth = True
-        tf.Session(config=session_conf)
+    else:
+        session_conf = tf.ConfigProto()
+    session_conf.gpu_options.allow_growth = True
+    tf.reset_default_graph()
+    tf.Session(config=session_conf)
 
     # build the model
     model_opts = {
